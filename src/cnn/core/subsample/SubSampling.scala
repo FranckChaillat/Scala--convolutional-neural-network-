@@ -38,6 +38,8 @@ object SubSampling {
          case None => acc
          case r@ Some(_) =>
              val i = downSampled(downSampledX,downSampledY)
+             
+             //useless from here
              val res =  for(x <- r.get.x to r.get.width-1)
                           yield for(y <- r.get.y to r.get.heigh-1)
                            yield s(x,y) match{
@@ -45,6 +47,7 @@ object SubSampling {
                               case _ =>  0
                             }
               val m = new NonEmptyMat(res.map(_.toVector).toVector)
+             //to here
               val updated = acc.updateMaxWithDelta(Tuple2(i, error(downSampledX, downSampledY)), r.get)
              r.get match {
                case r2 @ Rectangle(x,y,this.sWidth, this.sHeigh) =>

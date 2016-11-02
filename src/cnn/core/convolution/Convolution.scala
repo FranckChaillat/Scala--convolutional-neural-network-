@@ -33,7 +33,7 @@ object Convolution{
     
     private val sSeq = s.get
     
-    def split(kernelCnt : Int) : Vector[NonEmptyMat] = kernelCnt match {
+    def split(kernelCnt : Int) = kernelCnt match {
       case a if a.isPrime => throw ConvolutionException(CONV_KERNEL_COUNT)
       case _ =>  {
         val sets =Range(1,s.width+1 ) .flatMap(x => {
@@ -74,28 +74,27 @@ object Convolution{
       else
         
         method match {
-        case  `_VALID` => validConv(kernel , Option.apply(Rectangle(0,0,kernel.width, kernel.heigh)),
-                                      AccumulatorParam(EmptyMat(), Rectangle(0,0, kernel.width, kernel.heigh)))
-        case  `_FULL` =>  fullConv(kernel , Option.apply(Rectangle(1- kernel.width ,1- kernel.heigh, 1 ,  1)),
-                                      AccumulatorParam(EmptyMat(), Rectangle(0,0, kernel.width, kernel.heigh)))                          
+          case  `_VALID` => validConv(kernel , Option.apply(Rectangle(0,0,kernel.width, kernel.heigh)),
+                                        AccumulatorParam(EmptyMat(), Rectangle(0,0, kernel.width, kernel.heigh)))
+          case  `_FULL` =>  fullConv(kernel , Option.apply(Rectangle(1- kernel.width ,1- kernel.heigh, 1 ,  1)),
+                                        AccumulatorParam(EmptyMat(), Rectangle(0,0, kernel.width, kernel.heigh)))                          
         }
     
     
-    //TODO : optimize
     @tailrec
     private def validConv(kernel :  NonEmptyMat, rect : Option[Rectangle], result: AccumulatorParam) : NonEmptyMat = rect match {
         case None => result.base.asInstanceOf[NonEmptyMat]
-        case _ => { 
-              val cuttedX = sSeq.map( t => t.slice(rect.get.x, rect.get.width))
-              val cuttedXY = cuttedX.slice(rect.get.y , rect.get.heigh).zipWithIndex
+        case Some(r) => { 
+              val cuttedX = sSeq.map( t => t.slice(r.x, r.width))
+              val cuttedXY = cuttedX.slice(r.y , r.heigh).zipWithIndex
               val res = cuttedXY.map(x => compute(x._1, kernel ->(x._2)))
               
-              rect match{
-                case Some(Rectangle(x, y, this.width ,h)) => h match {
-                  case this.heigh => validConv(kernel, None, result.add(res.sum, rect.get))
-                  case _=> validConv(kernel, rect.get lineDown, result.add(res.sum, rect.get))
+              r match{
+                case Rectangle(_, _, this.width ,h) => h match {
+                  case this.heigh => validConv(kernel, None, result.add(res.sum, r))
+                  case _=> validConv(kernel, r lineDown, result.add(res.sum, r))
                 }
-                case _ =>  validConv(kernel, rect.get.goRight, result.add(res.sum, rect.get))
+                case _ =>  validConv(kernel, r goRight, result.add(res.sum, r))
               }
         }
     }
@@ -108,18 +107,18 @@ object Convolution{
        case _ => throw ConvolutionException(CONV_INVALID_RES)
      }
      case Some(r) =>  {
-              val cutted = sSeq.map(_.slice(rect.get.x, rect.get.width))
-                               .slice(rect.get.y , rect.get.heigh).zipWithIndex
-              val cuttedK = cutkernel(kernel, rect.get, this)
+              val cutted = sSeq.map(_.slice(r.x, r.width))
+                               .slice(r.y , r.heigh).zipWithIndex
+              val cuttedK = cutkernel(kernel, r, this)
               val res = cutted.map(x => compute(x._1, cuttedK ->(x._2)))
             
        r match {
-         case Rectangle(x,y,w,h) if w == (width + (rect.get.getRectWidth-1)) 
-                                 && h == (heigh + (rect.get.getRectHeigh-1)) => fullConv(kernel, None, result.add(res.sum, rect.get))       
+         case Rectangle(x,y,w,h) if w == (width + (r.getRectWidth-1)) 
+                                 && h == (heigh + (r.getRectHeigh-1)) => fullConv(kernel, None, result.add(res.sum, r))       
                 
-         case Rectangle(x, y, w, h) if w == (width + (rect.get.getRectWidth-1)) => fullConv(kernel, rect.get.lineDownFull, result.add(res.sum, rect.get))
+         case Rectangle(x, y, w, h) if w == (width + (r.getRectWidth-1)) => fullConv(kernel, r.lineDownFull, result.add(res.sum, r))
            
-         case  _ =>  fullConv(kernel, rect.get.goRight, result.add(res.sum, rect.get))
+         case  _ =>  fullConv(kernel, r.goRight, result.add(res.sum, r))
        }
      }
    } 

@@ -32,12 +32,12 @@ class Neuron(inLinks : Vector[Link], val outLinks : Vector[Link],  activationFun
       case _      => throw new NeuralLinkException(FC_LINK_COUNT)
   }
   
-  private def computeActivation(preactivation : Double) : Double = this match {
-    case n @ _ => n._activationFun match {
+  //changed
+  private def computeActivation(preactivation : Double) = this.activationFun match {
       case `_SOFTMAX` =>  throw new InvalidActivationFuncException(NEURON_INVALID_ACTIVATION)
-      case `_SIGMOID` => Sigmoid(n._act) 
+      case `_SIGMOID` => Sigmoid(this._act) 
     }
-  }
+  
   
   def computePreactivation() = inLinks.foldLeft(0.0)((x,y)=> x + y.*)
   
@@ -48,7 +48,7 @@ class Neuron(inLinks : Vector[Link], val outLinks : Vector[Link],  activationFun
 
   
   def updateWithDerivative(d : Double) = new Neuron(inLinks, outLinks, activationFun, act, d)
-  def updateWithActivation(a : Double) : Neuron = new Neuron(inLinks, outLinks, activationFun, a, derivative)
+  def updateWithActivation(a : Double) = new Neuron(inLinks, outLinks, activationFun, a, derivative)
   def updateWithInput(in : Vector[Link]) = new Neuron(in, outLinks, activationFun, act, derivative)
 }
 
@@ -66,12 +66,11 @@ case class OutNeuron(inLinks : Vector[Link], activationFun : ActivationFunction,
     case _       => throw new NeuralLinkException(FC_LINK_COUNT)
   }
 
-  private def computeActivation( layerPreact : Seq[Double]) : Double = this match {
-    case o @ OutNeuron(in, func, cla, act, preact, der) =>  o.activationFun match{
+  private def computeActivation( layerPreact : Seq[Double])  = this.activationFun match {
       case `_SOFTMAX` => Softmax.apply(layerPreact, preact)
-      case `_SIGMOID` => Sigmoid(act)
+      case `_SIGMOID` => Sigmoid(preact)
     }
-  }
+  
  
   def computeDelta(target : Int) = activationFun match{
       case `_SOFTMAX` => Softmax.derivative(this, target)

@@ -24,13 +24,13 @@ case class EmptyMat() extends Mat{
   val heigh = 0
   val width = 0
   
-  def ->(index : Int) : Vector[Double] = throw new IndexOutOfBoundsException("the requested index ('"+index+"') doesn't exist into the Matrix")
+  def ->(index : Int) = throw new IndexOutOfBoundsException("the requested index ('"+index+"') doesn't exist into the Matrix")
   
-  def %(x : Int, y : Int) : Boolean =  (width % x == 0 && heigh % y == 0)
+  def %(x : Int, y : Int) = (width % x == 0 && heigh % y == 0)
   
-  def ap(a: Vector[Double]) : NonEmptyMat =   new NonEmptyMat(Vector(a))
+  def ap(a: Vector[Double]) =   new NonEmptyMat(Vector(a))
   
-  def pr(a : Vector[Double]) : NonEmptyMat =  new NonEmptyMat(Vector(a))
+  def pr(a : Vector[Double]) =  new NonEmptyMat(Vector(a))
 }
 
 
@@ -46,47 +46,47 @@ case class EmptyMat() extends Mat{
   def this() = this(Vector())
  
   
-  def ->(index : Int) : Vector[Double] =  if(index <= s.size) 
-                                                 return s(index)
-                                          else throw new IndexOutOfBoundsException("the requested index ('"+index+"') doesn't exist into the Matrix")
+  def ->(index : Int) = if(index <= s.size) 
+                               s(index)
+                        else throw new IndexOutOfBoundsException("the requested index ('"+index+"') doesn't exist into the Matrix")
   
-  def apply(x: Int, y : Int) : Double =  s(x).toSeq(y)
+  def apply(x: Int, y : Int) =  s(x).toSeq(y)
   
-  def %(x : Int, y : Int) : Boolean =  (width % x == 0 && heigh % y == 0)
+  def %(x : Int, y : Int) =  (width % x == 0 && heigh % y == 0)
   
-  def get : Vector[Vector[Double]] = s
+  def get = s
   
-  def ap(a: Vector[Double]) : NonEmptyMat =  new NonEmptyMat(s.:+(a))
+  def ap(a: Vector[Double]) =  new NonEmptyMat(s.:+(a))
   
-  def pr(a : Vector[Double]) : NonEmptyMat = new NonEmptyMat(s.+: (a))
+  def pr(a : Vector[Double]) = new NonEmptyMat(s.+: (a))
   
-  def updated(i : Int, e : Vector[Double]) : NonEmptyMat =  new NonEmptyMat(s.updated(i, e))
+  def updated(i : Int, e : Vector[Double]) = new NonEmptyMat(s.updated(i, e))
   
-  def apElemAt(e : Double, i : Int) : NonEmptyMat = {  
+  def apElemAt(e : Double, i : Int) = {  
     val res = s(i) ++ Vector(e)
     val up = s.updated(i, res)
      new NonEmptyMat(up)
   }
 
   
-  def getSubMat(rect : Rectangle) : NonEmptyMat = rect match{
-    case a @ Rectangle(x , y, w , h) if w > this.width | h > this.heigh => 
+  def getSubMat(rect : Rectangle) = rect match{
+    case Rectangle(x , y, w , h) if w > this.width | h > this.heigh => 
       throw new IllegalArgumentException("The given rect object is bigger than the Mat")
       
     case _ => val cuttedX = s.map( t => t.slice(rect.x, rect.width))
               new NonEmptyMat(cuttedX.view(rect.y , rect.heigh).toVector)
   }
   
-  def compare(m : NonEmptyMat) : Boolean = {
+  def compare(m : NonEmptyMat) = {
     if(m.width != this.width && m.heigh != this.heigh)
       false
     else
        m.get.zip(this.get).forall(x=> x._1.sameElements(x._2))
   }
   
-  def compareSize(m : NonEmptyMat) = m.heigh == this.heigh && m.width == m.width
+  def compareSize(m : NonEmptyMat) = (m.heigh == this.heigh && m.width == m.width)
   
-  def rot180 : NonEmptyMat = new NonEmptyMat(this.get.reverse.map(x=> x.reverse))
+  def rot180 = new NonEmptyMat(this.get.reverse.map(x=> x.reverse))
    
 }
 
@@ -94,13 +94,12 @@ case class Kernel(override val s : Vector[Vector[Double]], activationFunc : Acti
 extends NonEmptyMat(s)
 {
   
-  def apply() ={
-    def compute(m : NonEmptyMat, f : Double => Double) : NonEmptyMat = new NonEmptyMat (m.get.map(x => x.map(x=> f(x))))
+  def apply() = {
+    def compute(m : NonEmptyMat, f : Double => Double) = new NonEmptyMat (m.get.map(x => x.map(x=> f(x))))
     
     activationFunc match {
-    case `_SIGMOID` =>  updateWithActivation(preActivation.map(x=> compute(x,  (d : Double) => ( Sigmoid(d)) )))
-    case `_SOFTMAX`=> throw InvalidActivationFuncException(KERNEL_INVALID_ACTIVATION)
-    
+      case `_SIGMOID` =>  updateWithActivation(preActivation.map(x=> compute(x,  (d : Double) => ( Sigmoid(d)) )))
+      case `_SOFTMAX`=> throw InvalidActivationFuncException(KERNEL_INVALID_ACTIVATION)
     }
   }
   
@@ -121,7 +120,7 @@ extends NonEmptyMat(s)
   
   def updateWithDelta(_delta : Vector[NonEmptyMat]) = Kernel(s,activationFunc, preActivation, activation, _delta)
   
-  override def  rot180 : Kernel = new Kernel(this.get.reverse.map(x=> x.reverse),activationFunc, preActivation, activation, delta)
+  override def rot180 = new Kernel(this.get.reverse.map(x=> x.reverse),activationFunc, preActivation, activation, delta)
 }
 
 
@@ -174,9 +173,9 @@ object Mat{
     }                    
       
     //TODO : Test
-    def toNeurons(m: NonEmptyMat) = {
-     m.get.flatMap(_.map { x => new Neuron(Vector(), Vector(), _SIGMOID, x) })
-    }
+    def toNeurons(m: NonEmptyMat) = 
+        m.get.flatMap(_.map { x => new Neuron(Vector(), Vector(), _SIGMOID, x) })
+    
     
 }
 

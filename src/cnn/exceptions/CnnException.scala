@@ -39,6 +39,8 @@ case object CONV_INVALID_RES extends ExceptionMsg("The convolution failed becaus
 case object CONV_KERNEL_FORMAT_ERR extends ExceptionMsg("An error occured when trying to convolve kernel on matrix, the kernel is too large")
 /**Image Loader exceptions**/
 case object NOT_A_DIRECTORY extends ExceptionMsg("The specified path is'nt a valid directory")
+case object XML_CONTENT_ERR extends ExceptionMsg("The xml cannot be parsed correcty, during the network loading")
+
 
 
 case class ActivationException(msg : ExceptionMsg) extends Exception(msg.text)
@@ -58,3 +60,4 @@ case class NeuralLinkException(msg : ExceptionMsg) extends Exception(msg.text)
 case class NeuronActivationException(msg : ExceptionMsg) extends Exception(msg.text)
 case class PoolingException(msg : ExceptionMsg) extends Exception(msg.text)
 case class ExempleLoadException(msg : ExceptionMsg) extends Exception(msg.text)
+case class NetworkLoadingException(msg : ExceptionMsg) extends Exception(msg.text)

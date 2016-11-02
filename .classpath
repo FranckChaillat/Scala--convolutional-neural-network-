@@ -8,5 +8,6 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="CNN/lib/x64"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/scala-xml_2.11.0-m4-1.0-rc2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

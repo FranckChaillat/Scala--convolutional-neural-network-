@@ -3,6 +3,7 @@ package cnn.learning
 import cnn.core.structure.{Network, InputLayer}
 import cnn.core.structure.NonEmptyMat
 import cnn.core.structure.FCLayer
+import scala.annotation.tailrec
 
 class LearnSession(set : Seq[Example], net : Network) {
   
@@ -17,7 +18,7 @@ class LearnSession(set : Seq[Example], net : Network) {
     test(set, Seq(), net)
   }
   
-  
+  @tailrec
   private def test (set : Seq[Example], acc : Seq[Example] , net : Network) : Seq[Example] = set match {
     case x +: xs => val res = net.submit(x)
                                  .compute
@@ -30,7 +31,7 @@ class LearnSession(set : Seq[Example], net : Network) {
     case _ => acc
   }
   
-  @scala.annotation.tailrec
+  @tailrec
   private def train(set : Seq[Example], net : Network) : Network = set match {
       case a@ x +: xs if(a.forall { x => x.learned }) => net
       case x +: xs => val res = net.submit(x)

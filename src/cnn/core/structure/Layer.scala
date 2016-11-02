@@ -41,60 +41,59 @@ case class InputLayer(in : Vector[NonEmptyMat]) extends Layer[NonEmptyMat](in)
 
 case class ConvolutionLayer(kernel : Vector[Kernel]) extends Layer[NonEmptyMat](kernel) with ProcessableLayer[NonEmptyMat] {
   
-  
   override def get = kernel
   
-  def apply(input : Layer[NonEmptyMat]) : ConvolutionLayer = {
+  def apply(input : Layer[NonEmptyMat]) = {
     
       val res = input match {
-       case x : InputLayer if input.lenght == kernel.length => kernel.par.zip(input.get)
-                                        .map(x=> x._1.updateWithPreActivation(Vector(x._2*(x._1, _VALID)))) //TODO change
+       case in : InputLayer if(input.lenght == kernel.length) => 
+                                  kernel.par.zip(input.get)
+                                        .map(x=> x._1.updateWithPreActivation(Vector(x._2*(x._1, _VALID))))
                                         .map(x=> x())
 
-       case _ =>  kernel.par.map(x => x.updateWithPreActivation(input.get.map(y => y.*(x, _VALID)))) //TODO change
+       case _ =>  kernel.par.map(x => x.updateWithPreActivation(input.get.map(y => y.*(x, _VALID))))
                             .map(p=> p())
       }
       ConvolutionLayer(res.seq)
   }
 
   
-  def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) : ConvolutionLayer =
+  def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) =
     nextLayer.fold(throw ConvolutionDerivativeException(CONV_NEXTLAYER_MISS))( x=>x match {
        case c : ConvolutionLayer => throw new NotImplementedError("this feature hasn't been implemented yet")
        case l @ _ =>
-             //val nextLayerDelta2 = l.getDelta().flatMap(_.get)
+
              val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
              val res = nextLayerDelta.grouped(nextLayerDelta.size/kernel.size).toVector.par
                                      .zip(kernel.map(_.rot180))
                                      .map(x=> x._2.computeDelta(x._1.map(y=> y *(x._2, _FULL))))
-             val up = for(i<- 0 to kernel.size-1)
-                       yield kernel(i).updateWithDelta(res(i))
-             ConvolutionLayer(up toVector)
+             val updated = for(i<- 0 to kernel.size-1)
+                             yield kernel(i).updateWithDelta(res(i))
+             ConvolutionLayer(updated toVector)
        })
     
        
-  def updateKernel[T <: NeuralUnit](nextLayer : ProcessableLayer[T], lc : LearningContext) : ConvolutionLayer = { 
+  def updateKernel[T <: NeuralUnit](nextLayer : ProcessableLayer[T], lc : LearningContext) = { 
+    
     val nextLayerDelta = nextLayer.getDelta.flatMap (_.get)
     val kernelActivation = kernel.flatMap(x => x.activation)
-    
 
-     val multiplied =  (nextLayerDelta, kernelActivation).zipped.par
-     val b = multiplied.map{ case (a,b) => Mat.combineMat(Vector(a,b), Mat._MATMUL) }
-     val c = b.collect{ case x : NonEmptyMat => x
-                              case _ => throw MatTypeException(KERNEL_UPDATE_FAIL)
-                            }
-     val d =  c.map(x=> x.*(Kernel.wrapNumeric(lc.leaningRate), _VALID))
-     val e = d.seq.grouped(nextLayerDelta.size / kernel.size).toVector
-     val f = e.flatMap(_.map(x=> Mat.reduce(x.get : _* )))
-     //val summed = f.map(_.sum)
+    val multiplied =  (nextLayerDelta, kernelActivation).zipped.par
+    val res = multiplied.map{ case (a,b) => Mat.combineMat(Vector(a,b), Mat._MATMUL) }
+                        .collect{ case x : NonEmptyMat => x
+                                  case _ => throw MatTypeException(KERNEL_UPDATE_FAIL)
+                                 }
+                        .map(x=> x.*(Kernel.wrapNumeric(lc.leaningRate), _VALID))
+                        .seq.grouped(nextLayerDelta.size / kernel.size).toVector
+                        .flatMap(_.map(x=> Mat.reduce(x.get : _* )))
+     
      ConvolutionLayer((for(i<- 0 to kernel.size-1)
-                        yield kernel(i) update(f(i))).toVector)
-                    
+                        yield kernel(i) update(res(i))).toVector)
   }
   
-  def getDelta : Vector[Layer[NonEmptyMat]] =  kernel.map(x => Layer(x.delta))
+  def getDelta  =  kernel.map(x => Layer(x.delta))
   
-  def getActivation: Option[Layer[NonEmptyMat]] = Some(Layer(kernel.flatMap(x => x.activation)))
+  def getActivation = Some(Layer(kernel.flatMap(x => x.activation))) //TODO : check if Option type is necessary
   
 
 }
@@ -180,7 +179,7 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
   }
   
   
-  def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) : FCLayer = 
+  def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) = 
     nextLayer.fold(FCLayer( neurons.collect{
                       case x: OutNeuron => x.updateWithDerivative(x.computeDelta(lc.target))
                       case _ => throw InvalidNeuralUnitTypeException(NOT_FC)
@@ -198,7 +197,7 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
              }))
   
   
-  def getDelta: Vector[Layer[NonEmptyMat]] = {
+  def getDelta = {
           val res : Vector[NonEmptyMat] = (0 to neurons.head._inLinks.size-1).map(l => {
   
                                            val reduced = (0 to neurons.size-1).foldLeft(0.0)((Acc,n) => {
@@ -210,20 +209,7 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
           Vector(Layer(res))
   }
              
-  /*def getDelta : Vector[Layer[NonEmptyMat]] = {
-    val res : Vector[NonEmptyMat] = (0 to neurons.head._inLinks.size-1).map(l => {
-          val reduced = (0 to neurons.size-1).foldLeft(new NonEmptyMat)((Acc,n) => {
-                                             val weight = neurons(n)._inLinks(l).weight
-                                             val delta = Mat.wrapNumeric(neurons(n)._der)
-                                             Mat.combineMat(Vector( delta , weight), Mat._MATMUL) match {
-                                                              case x: NonEmptyMat => x
-                                                              case _ => throw MatTypeException(LINK_CONSIT)
-                                             }
-                        })
-          reduced          
-    }).toVector
-    Vector(Layer(res))
-  }*/
+  
 }
  
  
