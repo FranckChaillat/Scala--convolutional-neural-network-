@@ -85,9 +85,9 @@ object Convolution{
     private def validConv(kernel :  NonEmptyMat, rect : Option[Rectangle], result: AccumulatorParam) : NonEmptyMat = rect match {
         case None => result.base.asInstanceOf[NonEmptyMat]
         case Some(r) => { 
-              val cuttedX = sSeq.map( t => t.slice(r.x, r.width))
-              val cuttedXY = cuttedX.slice(r.y , r.heigh).zipWithIndex
-              val res = cuttedXY.map(x => compute(x._1, kernel ->(x._2)))
+              val res = sSeq.map( t => t.slice(r.x, r.width))
+                            .slice(r.y , r.heigh).zipWithIndex
+                            .map(x => compute(x._1, kernel ->(x._2)))
               
               r match{
                 case Rectangle(_, _, this.width ,h) => h match {
@@ -107,10 +107,10 @@ object Convolution{
        case _ => throw ConvolutionException(CONV_INVALID_RES)
      }
      case Some(r) =>  {
-              val cutted = sSeq.map(_.slice(r.x, r.width))
+              val cuttedSource = sSeq.map(_.slice(r.x, r.width))
                                .slice(r.y , r.heigh).zipWithIndex
-              val cuttedK = cutkernel(kernel, r, this)
-              val res = cutted.map(x => compute(x._1, cuttedK ->(x._2)))
+              val cuttedKernel = cutkernel(kernel, r, this)
+              val res = cuttedSource.map(x => compute(x._1, cuttedKernel ->(x._2)))
             
        r match {
          case Rectangle(x,y,w,h) if w == (width + (r.getRectWidth-1)) 

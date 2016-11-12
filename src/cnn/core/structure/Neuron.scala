@@ -1,6 +1,6 @@
 package cnn.core.structure
 
-import cnn.activation.functions.Softmax
+
 import cnn.activation.functions._
 import cnn.exceptions.InvalidActivationFuncException
 import scala.annotation.tailrec
@@ -29,21 +29,21 @@ class Neuron(inLinks : Vector[Link], val outLinks : Vector[Link],  activationFun
   def apply() = inLinks match{
       case h +: t => val act = computeActivation(computePreactivation())
                            updateWithActivation(act)
-      case _      => throw new NeuralLinkException(FC_LINK_COUNT)
+      case _      => throw NeuralLinkException(FC_LINK_COUNT)
   }
   
   //changed
   private def computeActivation(preactivation : Double) = this.activationFun match {
-      case `_SOFTMAX` =>  throw new InvalidActivationFuncException(NEURON_INVALID_ACTIVATION)
-      case `_SIGMOID` => Sigmoid(this._act) 
+      case `_SOFTMAX` =>  throw InvalidActivationFuncException(NEURON_INVALID_ACTIVATION)
+      case sig @ `_SIGMOID` => sig(this._act) 
     }
   
   
   def computePreactivation() = inLinks.foldLeft(0.0)((x,y)=> x + y.*)
   
   def computeDelta() = _activationFun match {
-      case `_SOFTMAX` =>  throw new InvalidActivationFuncException(NEURON_INVALID_ACTIVATION)
-      case `_SIGMOID` => Sigmoid.derivative(_act)
+      case `_SOFTMAX` =>  throw InvalidActivationFuncException(NEURON_INVALID_ACTIVATION)
+      case sig @ `_SIGMOID` => sig.derivative(_act)
   }
 
   
@@ -61,20 +61,20 @@ case class OutNeuron(inLinks : Vector[Link], activationFun : ActivationFunction,
   def this(_inLinks : Vector[Link], _classification: Int) = this(_inLinks, _SOFTMAX, _classification,0,0,0)
   
   def apply(layerPreact : Layer[OutNeuron]) = inLinks match {
-    case a@ h+:t => val act = computeActivation(layerPreact.get.map(_.preact))
+    case h+:t => val act = computeActivation(layerPreact.get.map(_.preact))
                     updateWithActivation(act)
     case _       => throw new NeuralLinkException(FC_LINK_COUNT)
   }
 
   private def computeActivation( layerPreact : Seq[Double])  = this.activationFun match {
-      case `_SOFTMAX` => Softmax.apply(layerPreact, preact)
-      case `_SIGMOID` => Sigmoid(preact)
+      case soft @ `_SOFTMAX` => soft(layerPreact, preact)
+      case sig @ `_SIGMOID` =>  sig(preact)
     }
   
  
   def computeDelta(target : Int) = activationFun match{
-      case `_SOFTMAX` => Softmax.derivative(this, target)
-      case `_SIGMOID` => Sigmoid.derivative(act)
+      case soft @ `_SOFTMAX` => soft.derivative(this, target)
+      case sig @ `_SIGMOID` => sig.derivative(act)
   }
   
   override def updateWithActivation(a : Double) = OutNeuron(inLinks, activationFun, classification, a, preact, derivative)

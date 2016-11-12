@@ -44,9 +44,9 @@ import cnn.learning.Example
   
   def getInference = layers.lastOption.fold(throw NetworkStructureException(EMPTY_NETWORK)){_ match {
     case fc : FCLayer => val max = fc.get.collect{ case x: OutNeuron => x
-                                       case _ => throw NeuronTypeException(NO_OUTPUT_LAYER)
-                                     }
-                                  .maxBy(_.act)
+                                                   case _ => throw NeuronTypeException(NO_OUTPUT_LAYER)
+                                                 }
+                                         .maxBy(_.act)
                         (max.classification, max.act)
     case _ => throw NetworkStructureException(NOT_FC)
   }}

@@ -17,6 +17,7 @@ case object CONV_NEXTLAYER_MISS extends ExceptionMsg("The Convolution layer's co
 case object KERNEL_UPDATE_FAIL extends ExceptionMsg("The kernel update failed, unable to multiply matrices")
 case object INVALID_LAST_LAYER extends ExceptionMsg("The current layer in an invalid one, the last layer is suposed to be a Fully connected layer with out neurons inside")
 case object POOLING_SUM extends ExceptionMsg("An Error occured while summing delta matrices, please ensure the next layer is weel formed")
+case object POOLING_RES extends ExceptionMsg("The result of pooling operation is not supposed to be None")
 case object POOLING_CONST extends ExceptionMsg("Pooling layer must have the same number of input, activation and error matrices")
 case object POOLING_MAX_NEIGHBOR extends ExceptionMsg("The given matrix dimentions must be divisible by the neighborhood values")
 case object POOLING_UPSAMPLE_MAT_SIZE extends ExceptionMsg("The error matrix seems not to be as large as the corresponding subsampled one is the upsample method")
@@ -40,8 +41,6 @@ case object CONV_KERNEL_FORMAT_ERR extends ExceptionMsg("An error occured when t
 /**Image Loader exceptions**/
 case object NOT_A_DIRECTORY extends ExceptionMsg("The specified path is'nt a valid directory")
 case object XML_CONTENT_ERR extends ExceptionMsg("The xml cannot be parsed correcty, during the network loading")
-
-
 
 case class ActivationException(msg : ExceptionMsg) extends Exception(msg.text)
 case class BackPropagationException(msg : ExceptionMsg) extends Exception(msg.text)

@@ -4,17 +4,11 @@ import scala.annotation.tailrec
 import scala.collection.mutable.WrappedArray
 import cnn.helper.implicits.Implicits._
 import cnn.core.objects._
-import cnn.exceptions.InvalidMatSizeException
-import cnn.exceptions.MatTypeException
-import cnn.exceptions.InvalidMatSizeException
-import cnn.activation.functions._SIGMOID
+import cnn.exceptions.{InvalidMatSizeException, MatTypeException}
 import cnn.helper.implicits.Implicits.RichList
-import cnn.activation.functions.ActivationFunction
-import cnn.activation.functions.Sigmoid
-import cnn.activation.functions._SOFTMAX
+import cnn.activation.functions.{ActivationFunction, _SIGMOID, _SOFTMAX}
 import cnn.exceptions.InvalidActivationFuncException
 import cnn.exceptions.{KERNEL_INVALID_ACTIVATION, MAT_ADAPT}
-
 
 
 abstract class Mat extends NeuralUnit
@@ -98,15 +92,16 @@ extends NonEmptyMat(s)
     def compute(m : NonEmptyMat, f : Double => Double) = new NonEmptyMat (m.get.map(x => x.map(x=> f(x))))
     
     activationFunc match {
-      case `_SIGMOID` =>  updateWithActivation(preActivation.map(x=> compute(x,  (d : Double) => ( Sigmoid(d)) )))
+      case sig @ `_SIGMOID` =>  updateWithActivation(preActivation.map(x=> compute(x,  (d : Double) => ( sig(d)) )))
       case `_SOFTMAX`=> throw InvalidActivationFuncException(KERNEL_INVALID_ACTIVATION)
     }
   }
   
-  def computeDelta(m : Vector[NonEmptyMat]) ={
-     def compute(m : NonEmptyMat, f : Double => Double) : NonEmptyMat = new NonEmptyMat (m.get.map(x => x.map(x=> f(x))))
+  def computeDelta(m : Vector[NonEmptyMat]) = {
+     def compute(m : NonEmptyMat, f : Double => Double) = new NonEmptyMat (m.get.map(x => x.map(x=> f(x))))
+     
      activationFunc match {
-       case `_SIGMOID` => m.map( x=> compute(x, (d : Double) => (Sigmoid.derivative(d))) )
+       case sig @ `_SIGMOID` => m.map( x=> compute(x, (d : Double) => (sig.derivative(d))) )
        case `_SOFTMAX`=> throw InvalidActivationFuncException(KERNEL_INVALID_ACTIVATION)
        
      }
@@ -137,7 +132,7 @@ object Mat{
     
     def fillMatWith(value : Double, width: Int, heigh : Int) = new NonEmptyMat(Range(0,heigh).map(x => Range(0, width).map(x=>value).toVector).toVector)
     
-    def reduce(v : Vector[Double]*) = v.map(_.foldLeft(0.0)((acc, e)=> acc+e)).sum //TODO : Tester reduce
+    def reduce(v : Vector[Double]*) = v.map(_.foldLeft(0.0)((acc, e)=> acc+e)).sum
     
     
     
@@ -171,8 +166,7 @@ object Mat{
         case None => new EmptyMat()
       }
     }                    
-      
-    //TODO : Test
+     
     def toNeurons(m: NonEmptyMat) = 
         m.get.flatMap(_.map { x => new Neuron(Vector(), Vector(), _SIGMOID, x) })
     
