@@ -9,6 +9,8 @@ import cnn.helper.implicits.Implicits.RichList
 import cnn.activation.functions.{ActivationFunction, _SIGMOID, _SOFTMAX}
 import cnn.exceptions.InvalidActivationFuncException
 import cnn.exceptions.{KERNEL_INVALID_ACTIVATION, MAT_ADAPT}
+import cnn.exceptions.MatOperationException
+import cnn.exceptions.MAT_OPERATION_FAILED
 
 
 abstract class Mat extends NeuralUnit
@@ -80,6 +82,8 @@ case class EmptyMat() extends Mat{
   
   def compareSize(m : NonEmptyMat) = (m.heigh == this.heigh && m.width == m.width)
   
+  def compareSize(h: Int, w : Int) = (heigh==h && width==w)
+  
   def rot180 = new NonEmptyMat(this.get.reverse.map(x=> x.reverse))
    
 }
@@ -121,6 +125,7 @@ extends NonEmptyMat(s)
 
 object Kernel{
   def wrapNumeric(n : Double) = Kernel(Vector(Vector(n)))
+  def fromMatrix(m : NonEmptyMat) = Kernel(m.s)
 }
 
 
@@ -134,8 +139,6 @@ object Mat{
     
     def reduce(v : Vector[Double]*) = v.map(_.foldLeft(0.0)((acc, e)=> acc+e)).sum
     
-    
-    
     /**Operations available on Matrices**/
     sealed class MatOperation(val operation : (Double, Double ) => Double)
     case object _MATDIV extends MatOperation((x,y) => x/y)
@@ -144,7 +147,7 @@ object Mat{
     case object _MATSUB extends MatOperation((x,y) => x-y)
     
     /**Combine all matrices using the specified math operation**/
-    def combineMat(lst : Vector[NonEmptyMat], op : MatOperation): Mat = {
+    def combineMat(lst : Vector[NonEmptyMat], op : MatOperation): NonEmptyMat = {
       
       @tailrec
       def compute(l : Vector[NonEmptyMat], acc : NonEmptyMat) : NonEmptyMat = l.headOption match{
@@ -162,13 +165,23 @@ object Mat{
         case Some(mat) if lst.forall(x=> x.compareSize(mat)) => op match {
           case `_MATMUL` |`_MATDIV` => compute(lst, Mat.fillMatWith(1, mat.width, mat.heigh))
           case _ => compute(lst, Mat.fillMatWith(0, mat.width, mat.heigh))
-        } 
-        case None => new EmptyMat()
+        }
+        case Some(mat) => throw MatOperationException(MAT_OPERATION_FAILED)
       }
     }                    
      
     def toNeurons(m: NonEmptyMat) = 
         m.get.flatMap(_.map { x => new Neuron(Vector(), Vector(), _SIGMOID, x) })
+        
+    
+    def completeMatWith(m : Mat, heigh : Int, width : Int, value : Double) =  m match {
+        case e : EmptyMat => Mat.fillMatWith(value, width, heigh)
+        case x : NonEmptyMat  => 
+                if(x.heigh <= heigh && x.width <= width){
+                       val res = x.get.map(e =>  e ++ ( Vector.fill(width - e.size)(value) ))
+                       Range(0, heigh-x.heigh).foldLeft(new NonEmptyMat(res)) ((acc, e) => acc.ap(Vector.fill(width)(value)))
+                } else x    
+      }
     
     
 }

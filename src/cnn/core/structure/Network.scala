@@ -3,8 +3,7 @@ package cnn.core.structure
 import cnn.core.convolution.Convolution._
 import cnn.core.subsample.SubSampling._
 import scala.annotation.tailrec
-import cnn.exceptions. {MatCountException,InvalidNeuralUnitTypeException,LayerTypeException,NetworkStructureException}
-import cnn.exceptions.LayerTypeException
+import cnn.exceptions. {MatCountException,InvalidNeuralUnitTypeException,LayerTypeException,NetworkStructureException, KERNEL_UPDATE_INPUT}
 import cnn.learning.LearningContext
 import cnn.exceptions.MatTypeException
 import cnn.exceptions.NeuronTypeException
@@ -100,7 +99,7 @@ import cnn.learning.Example
     
       @tailrec
       def backprop(pLayers : Vector[Layer[NeuralUnit]], acc : Network = new Network(lc)) : Network = {
-
+    
         pLayers.reverse match {
           case h +: t if h == layers.last => h match {
             case a : ProcessableLayer[_] => backprop(t.reverse, acc.+:(a.derivate(None, lc))) 

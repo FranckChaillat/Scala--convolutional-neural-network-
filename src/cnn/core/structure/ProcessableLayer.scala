@@ -14,16 +14,14 @@ trait ProcessableLayer[A <: NeuralUnit] {
   def getNextLayerDelta[B <: NeuralUnit](nextLayer : ProcessableLayer[B]) =  nextLayer match {
     case  fc : FCLayer => 
           val act = this.getActivation
-          val delta = fc.getDelta
-          if(delta.size == 0 || act.get.lenght ==0)  throw BackPropagationException(BP_ERROR)
+          if(fc.getDelta.size == 0 || act.get.lenght ==0)  throw BackPropagationException(BP_ERROR)
           else {
-               val delta = fc.getDelta
-                 
-                               val t = delta.head.get.map { x => x(0,0) }
-                               val t2 = t.grouped(t.size / act.get.lenght).toVector
-                                         .map(_.grouped(act.get.head.width).toVector)
-                                         .map(x=> new NonEmptyMat(x)).toVector
-              Vector(Layer(t2))
+                 val delta = fc.getRawDelta
+                 val values = delta.head.get.map { x => x(0,0) }
+                 val res = values.grouped(values.size / act.get.lenght).toVector
+                           .map(_.grouped(act.get.head.width).toVector)
+                           .map(x=> new NonEmptyMat(x)).toVector
+              Vector(Layer(res))
            }
                                  
     case _ => nextLayer.getDelta

@@ -33,11 +33,14 @@ case object LINK_WEIGHT_MULT extends ExceptionMsg("Unable to multiple weight and
 case object CONV_KERNEL_COUNT extends ExceptionMsg("The number of kernel needs to be a non-prime number")
 case object CONV_DIV extends ExceptionMsg("The base matrix can't be devided")
 case object INVALID_OUT_LAYER extends ExceptionMsg("The last layer must be fully connected")
+case object MAT_OPERATION_FAILED extends ExceptionMsg("The requiered operation on mat is not possible, check the input matrices's format")
 case object EMPTY_MAT extends ExceptionMsg("The input matrice can't be Empty for an example")
 case object NO_ACTIVATION extends ExceptionMsg("The activation layer is empty and is not supposed to be empty")
 case object BP_ERROR extends ExceptionMsg("Backpropagation error; The next layer has no delta or the current layer has not activation")
 case object CONV_INVALID_RES extends ExceptionMsg("The convolution failed because the result accumulator is an empty matrix")
 case object CONV_KERNEL_FORMAT_ERR extends ExceptionMsg("An error occured when trying to convolve kernel on matrix, the kernel is too large")
+case object KERNEL_UPDATE_INPUT extends ExceptionMsg("An error occured while trying to update a kernel, please ensure the input of the convolution layer is not empty")
+
 /**Image Loader exceptions**/
 case object NOT_A_DIRECTORY extends ExceptionMsg("The specified path is'nt a valid directory")
 case object XML_CONTENT_ERR extends ExceptionMsg("The xml cannot be parsed correcty, during the network loading")
@@ -53,6 +56,7 @@ case class InvalidNeuralUnitTypeException(msg : ExceptionMsg) extends Exception(
 case class LayerTypeException (msg : ExceptionMsg) extends Exception(msg.text)
 case class MatCountException(msg : ExceptionMsg) extends Exception(msg.text)
 case class MatTypeException(msg : ExceptionMsg) extends Exception(msg.text)
+case class MatOperationException(msg : ExceptionMsg) extends Exception(msg.text)
 case class NeuronTypeException(msg : ExceptionMsg) extends Exception(msg.text)
 case class NetworkStructureException(msg : ExceptionMsg) extends Exception(msg.text)
 case class NeuralLinkException(msg : ExceptionMsg) extends Exception(msg.text)
