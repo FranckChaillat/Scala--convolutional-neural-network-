@@ -16,7 +16,7 @@ import cnn.exceptions.{CONV_KERNEL_COUNT, CONV_DIV, CONV_NEXTLAYER_MISS, KERNEL_
                       INVALID_LAST_LAYER, INVALID_LAYER_ORDER, POOLING_SUM, UPSAMPLING_MAT_COUNT, FC_NEURON_CONSIST, FC_LINK_COUNT, NOT_FC, POOLING_CONST, LINK_CONSIT}
 import cnn.learning.LearningContext
 import cnn.exceptions.MatTypeException
-import cnn.core.structure.Mat.{_MATADD,_MATMUL}
+import cnn.core.structure.Mat.{MatOperation, _MATADD,_MATMUL}
 import cnn.exceptions.LayerTypeException
 
 
@@ -62,7 +62,17 @@ case class ConvolutionLayer(kernel : Vector[Kernel]) extends Layer[NonEmptyMat](
   
   def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) =
     nextLayer.fold(throw ConvolutionDerivativeException(CONV_NEXTLAYER_MISS))( x=>x match {
-       case c : ConvolutionLayer => throw new NotImplementedError("this feature hasn't been implemented yet")
+       case c : ConvolutionLayer =>  
+             val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
+             val res = kernel.par.map { k => 
+               val rot = k.rot180
+               val conv = nextLayerDelta.map { x => x.*(rot, _FULL) }
+               rot.computeDelta(conv)
+               }
+             val updated = for(i <- 0 to kernel.size -1)
+                             yield kernel(i).updateWithDelta(res(i))
+             ConvolutionLayer(updated toVector)                             
+             
        case l @ _ =>
              val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
              val res = nextLayerDelta.grouped(nextLayerDelta.size/kernel.size).toVector.par
@@ -79,15 +89,12 @@ case class ConvolutionLayer(kernel : Vector[Kernel]) extends Layer[NonEmptyMat](
         val nextLayerDelta = getNextLayerDelta(nextLayer).flatMap(_.get)
         val kernelActivation = kernel.flatMap(x => x.activation)
         val multiplied =  nextLayerDelta.zip( kernelActivation).par
-        val res = multiplied.map{ case (a,b) => Mat.combineMat(Vector(a,b), Mat._MATMUL) }
-                            .collect{ case x : NonEmptyMat => x
-                                      case _ => throw MatTypeException(KERNEL_UPDATE_FAIL)
-                                     }
+        val res = multiplied.map{ case (a,b) => a.multiply(Vector(b))}
                             .map(x=> x.*(Kernel.wrapNumeric(lc.leaningRate), _VALID))
                             .seq.grouped(nextLayerDelta.size / kernel.size).toVector
                             .flatMap(_.map(x=> Mat.reduce(x.get : _* )))
          
-         ConvolutionLayer((for(i<- 0 to kernel.size-1)
+        ConvolutionLayer((for(i<- 0 to kernel.size-1)
                             yield kernel(i) update(res(i))).toVector)
   }
        
@@ -118,7 +125,8 @@ case class PoolingLayer(window : PoolingWindow , method : SubSamplingMethod) ext
                 val nextLayerDelta = getNextLayerDelta(e).par
                 val res = nextLayerDelta.map(e=> upsample(x,y, i.get ,a.get, e.get))
                 val sum = RichList.powerZip[NonEmptyMat](res.seq)
-                                  .map(x=> Mat.combineMat(x, Mat._MATADD))
+                                    .map{case h+: t => h.add(t)}
+                                    //.map(x=>  Mat.combineMat(x, Mat._MATADD))
                                   .collect{ case x : NonEmptyMat => x
                                             case _ => throw PoolingException(POOLING_SUM)
                                           }
@@ -180,7 +188,7 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
     case _ => throw FCLayerStructureException(FC_NEURON_CONSIST)
   }
   
-  
+  //TODO: parallelize
   def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) = 
     nextLayer.fold(FCLayer( neurons.collect{
                       case x: OutNeuron => x.updateWithDerivative(x.computeDelta(lc.target))

@@ -35,13 +35,17 @@ import cnn.learning.Example
   
 
   def submit(ex : Example) = ex.m match {
-    case ne : NonEmptyMat => 
-      val in = InputLayer(Vector(ne))
-      new Network(layers.tail.+:(in), lc.updateTarget(ex.classification))
+    case x : NonEmptyMat =>
+      val inlayer = InputLayer(Vector(x))
+      layers match {
+        case in@ InputLayer(_) +: t => new Network(layers.tail.+:(inlayer), lc.updateTarget(ex.classification))
+        case a@ _ =>  new Network(a.+:(inlayer), lc.updateTarget(ex.classification))
+      }
+      
     case _ => throw MatTypeException(EMPTY_MAT)
   }
   
-  def getInference = layers.lastOption.fold(throw NetworkStructureException(EMPTY_NETWORK)){_ match {
+  def getInference = layers.lastOption.fold(throw NetworkStructureException(EMPTY_NETWORK)) {_ match {
     case fc : FCLayer => val max = fc.get.collect{ case x: OutNeuron => x
                                                    case _ => throw NeuronTypeException(NO_OUTPUT_LAYER)
                                                  }

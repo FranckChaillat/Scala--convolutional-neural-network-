@@ -29,9 +29,9 @@ object Reader {
          val layers = content.\\ ("network").\\("layers").head.child
                              .map(x=> loadLayer(x))
          val lc = new LearningContext(0,0,content.\\("lc").text.toDouble)
-         new Network(layers.toVector, lc)
+         Some(new Network(layers.toVector, lc))
       }catch{
-        case e : Throwable => throw NetworkLoadingException(XML_CONTENT_ERR).initCause(e)
+        case e : Throwable => None
       }
         
     }
@@ -55,7 +55,7 @@ object Reader {
                                      
       case <fc>{neurons, fun}</fc>   => val neur =  neurons.child.map(x=> {
                                           val weight = x.\\("weight").text.split(";").map(x=> new Link(x.toDouble)).toVector
-                                          val classification  = if(x.exists(e => e.label == "class")) Some(x.\\("class").text) else None
+                                          val classification  = if(x.child.exists(e => e.label == "class")) Some(x.\\("class").text) else None
                                           classification.fold(new Neuron(weight, functionFromXml(fun))) (x => new OutNeuron(weight, x.toInt))
                                        })
                                      FCLayer(neur.toVector)

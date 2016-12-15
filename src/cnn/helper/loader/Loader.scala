@@ -1,10 +1,11 @@
-package cnn.learning
+package cnn.helper.loader
 
 import java.io.File
 import cnn.exceptions.{ExempleLoadException, NOT_A_DIRECTORY}
 import cnn.core.structure.NonEmptyMat
 import org.opencv.core.Core
 import org.opencv.highgui.Highgui
+import cnn.learning.Example
 
 object Loader {
 

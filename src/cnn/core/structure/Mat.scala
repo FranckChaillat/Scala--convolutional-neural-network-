@@ -11,6 +11,7 @@ import cnn.exceptions.InvalidActivationFuncException
 import cnn.exceptions.{KERNEL_INVALID_ACTIVATION, MAT_ADAPT}
 import cnn.exceptions.MatOperationException
 import cnn.exceptions.MAT_OPERATION_FAILED
+import cnn.exceptions.MatTypeException
 
 
 abstract class Mat extends NeuralUnit
@@ -40,7 +41,6 @@ case class EmptyMat() extends Mat{
   val indexH = heigh-1
    
   def this() = this(Vector())
- 
   
   def ->(index : Int) = if(index <= s.size) 
                                s(index)
@@ -62,6 +62,27 @@ case class EmptyMat() extends Mat{
     val res = s(i) ++ Vector(e)
     val up = s.updated(i, res)
      new NonEmptyMat(up)
+  }
+  
+  
+  def multiply = combineMat((x,y) => x*y)
+  def add = combineMat((x,y) => x+y)
+  def divide = combineMat((x,y) => x/y)
+  def substract = combineMat((x,y) => x-y)
+    
+  private def combineMat(op : (Double, Double) => Double) : (Vector[NonEmptyMat]) => NonEmptyMat =
+  {
+    @tailrec
+    def combineF(acc : NonEmptyMat)(lst : Vector[NonEmptyMat]) : NonEmptyMat = lst.headOption match{
+      case None => acc
+      case Some(mat) if acc.compareSize(mat) => 
+        val res = mat.get.zip(acc.get).map{case (a,b) =>  Range(0,a.length).map(i=> op(a(i), b(i))).toVector}
+        combineF(new NonEmptyMat(res)) (lst.tail)
+
+      case _ => throw MatTypeException(MAT_OPERATION_FAILED)
+    
+    }
+    combineF(this)
   }
 
   
@@ -85,6 +106,20 @@ case class EmptyMat() extends Mat{
   def compareSize(h: Int, w : Int) = (heigh==h && width==w)
   
   def rot180 = new NonEmptyMat(this.get.reverse.map(x=> x.reverse))
+  
+  def pad(value : Double, width : Int) = {
+    
+    val rows = (1 to width).map(x=> 
+                          (1 to s.length +(2*width)).toVector.map(y => value)).toVector
+    
+    val res = s.map { x => 
+      val cols = (for(i<- (1 to width)) yield value).toVector
+      cols ++ (x ++ cols)
+    }
+    new NonEmptyMat(rows ++ (res ++ rows))
+     
+    
+  }
    
 }
 
@@ -146,6 +181,8 @@ object Mat{
     case object _MATADD extends MatOperation((x,y) => x+y)
     case object _MATSUB extends MatOperation((x,y) => x-y)
     
+    
+   
     /**Combine all matrices using the specified math operation**/
     def combineMat(lst : Vector[NonEmptyMat], op : MatOperation): NonEmptyMat = {
       
@@ -168,7 +205,7 @@ object Mat{
         }
         case Some(mat) => throw MatOperationException(MAT_OPERATION_FAILED)
       }
-    }                    
+    }                   
      
     def toNeurons(m: NonEmptyMat) = 
         m.get.flatMap(_.map { x => new Neuron(Vector(), Vector(), _SIGMOID, x) })

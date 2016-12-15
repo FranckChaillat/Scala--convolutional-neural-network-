@@ -108,7 +108,7 @@ object Convolution{
      }
      case Some(r) =>  {
               val cuttedSource = sSeq.map(_.slice(r.x, r.width))
-                               .slice(r.y , r.heigh).zipWithIndex
+                                     .slice(r.y , r.heigh).zipWithIndex
               val cuttedKernel = cutkernel(kernel, r, this)
               val res = cuttedSource.map(x => compute(x._1, cuttedKernel ->(x._2)))
             
