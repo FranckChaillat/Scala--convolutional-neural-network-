@@ -16,7 +16,6 @@ import cnn.exceptions.{CONV_KERNEL_COUNT, CONV_DIV, CONV_NEXTLAYER_MISS, KERNEL_
                       INVALID_LAST_LAYER, INVALID_LAYER_ORDER, POOLING_SUM, UPSAMPLING_MAT_COUNT, FC_NEURON_CONSIST, FC_LINK_COUNT, NOT_FC, POOLING_CONST, LINK_CONSIT}
 import cnn.learning.LearningContext
 import cnn.exceptions.MatTypeException
-import cnn.core.structure.Mat.{MatOperation, _MATADD,_MATMUL}
 import cnn.exceptions.LayerTypeException
 
 
@@ -170,20 +169,20 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
   def getActivation(): Option[Layer[NonEmptyMat]] = if(neurons.size >0) Some(Layer(neurons.map(x=> Mat.wrapNumeric(x._act)))) else None
   
     def apply(input : Layer[Neuron]) : FCLayer = neurons match {
-    case a@ h +:t =>
-      val updated = a.map( n => if(n._inLinks.length == input.get.length)
-                                  n.updateWithInput( input.get.map(_._act).zip(n._inLinks)
-                                                              .map(x=> x._2.updateWithInput(x._1)))
-                                else throw NeuralLinkException(FC_LINK_COUNT))
-      updated.head match {
-        case x: OutNeuron => val preacts  = updated.collect({
-                                      case x: OutNeuron => x.updateWithPreact(x.computePreactivation)
-                                      case _ => throw new FCLayerStructureException(FC_NEURON_CONSIST)
-                                    })
-                             FCLayer(preacts.map(x => x(Layer(preacts))))
-        case _ => FCLayer(a.map(_()))
-      }
-                                
+       case a@ h +:t =>
+          val updated = a.map( n => if(n._inLinks.length == input.get.length)
+                                      n.updateWithInput( input.get.map(_._act).zip(n._inLinks)
+                                                                  .map(x=> x._2.updateWithInput(x._1)))
+                                    else throw NeuralLinkException(FC_LINK_COUNT))
+          updated.head match {
+               case x: OutNeuron => val preacts  = updated.collect({
+                                              case x: OutNeuron => x.updateWithPreact(x.computePreactivation)
+                                              case _ => throw new FCLayerStructureException(FC_NEURON_CONSIST)
+                                            })
+                                     FCLayer(preacts.map(x => x(Layer(preacts))))
+               case _ => FCLayer(a.map(_()))
+         }
+                                 
      
     case _ => throw FCLayerStructureException(FC_NEURON_CONSIST)
   }

@@ -93,18 +93,18 @@ object SubSampling {
     
     
     
-  def updateMaxWithDelta(max : Tuple2[Double, Double], rect : Rectangle) : NonEmptyMat = {
-    val res = for(x <- 0 to s.width-1)
-      yield for(y <- 0 to s.heigh-1)
-            yield (x,y) match {
-               case a if a._1.isBetween(rect.x, rect.width) 
-                      && a._2.isBetween(rect.y, rect.heigh) =>
-                      
-                        if(s(a._1, a._2) == max._1) max._2 else  0
-               case b@ _ => s(b._1, b._2)
-              }
-   new NonEmptyMat(res.map(_.toVector).toVector)
-  }
+      def updateMaxWithDelta(max : Tuple2[Double, Double], rect : Rectangle) : NonEmptyMat = {
+        val res = for(x <- 0 to s.width-1)
+          yield for(y <- 0 to s.heigh-1)
+                yield (x,y) match {
+                   case a if a._1.isBetween(rect.x, rect.width) 
+                          && a._2.isBetween(rect.y, rect.heigh) =>
+                          
+                            if(s(a._1, a._2) == max._1) max._2 else  0
+                   case b@ _ => s(b._1, b._2)
+                  }
+       new NonEmptyMat(res.map(_.toVector).toVector)
+    }
     
 
  }

@@ -174,38 +174,9 @@ object Mat{
     
     def reduce(v : Vector[Double]*) = v.map(_.foldLeft(0.0)((acc, e)=> acc+e)).sum
     
-    /**Operations available on Matrices**/
-    sealed class MatOperation(val operation : (Double, Double ) => Double)
-    case object _MATDIV extends MatOperation((x,y) => x/y)
-    case object _MATMUL extends MatOperation((x,y) => x*y)
-    case object _MATADD extends MatOperation((x,y) => x+y)
-    case object _MATSUB extends MatOperation((x,y) => x-y)
     
     
-   
-    /**Combine all matrices using the specified math operation**/
-    def combineMat(lst : Vector[NonEmptyMat], op : MatOperation): NonEmptyMat = {
-      
-      @tailrec
-      def compute(l : Vector[NonEmptyMat], acc : NonEmptyMat) : NonEmptyMat = l.headOption match{
-        case None => acc
-        case Some(mat) => 
-          val add = mat.get.zip(acc.get).collect{
-            case (a,b) if a.length == b.length => Range(0,a.length).map(i=> op.operation(a(i), b(i))).toVector
-            case _ => Vector()
-          }
-          compute(l.tail, new NonEmptyMat(add))
-        }
-    
-      
-      lst.headOption match {
-        case Some(mat) if lst.forall(x=> x.compareSize(mat)) => op match {
-          case `_MATMUL` |`_MATDIV` => compute(lst, Mat.fillMatWith(1, mat.width, mat.heigh))
-          case _ => compute(lst, Mat.fillMatWith(0, mat.width, mat.heigh))
-        }
-        case Some(mat) => throw MatOperationException(MAT_OPERATION_FAILED)
-      }
-    }                   
+                    
      
     def toNeurons(m: NonEmptyMat) = 
         m.get.flatMap(_.map { x => new Neuron(Vector(), Vector(), _SIGMOID, x) })

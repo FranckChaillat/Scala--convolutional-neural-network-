@@ -15,6 +15,7 @@ object Loader {
     if(f.exists && f.isDirectory){
       
       System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+      
       f.listFiles
        .filter(x => x.isDirectory)
        .flatMap(_.listFiles)
@@ -22,8 +23,8 @@ object Loader {
                    x.getName.endsWith(".png"))
        .map (x => {
                     val gray = Highgui.imread(x.getAbsolutePath, Highgui.CV_LOAD_IMAGE_GRAYSCALE)
-                    val t = (for(i <- 0 to gray.cols -1) yield
-                                  (for(j <- 0 to gray.rows -1) yield
+                    val t = (for(i <- Range(0, gray.rows)) yield
+                                  (for(j <- Range(0, gray.cols)) yield
                                     gray.get(i, j)(0)).toVector).toVector
                     
                     Example(x.getParentFile.getName.toInt, new NonEmptyMat(t)) 
