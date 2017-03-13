@@ -62,24 +62,24 @@ case class ConvolutionLayer(kernel : Vector[Kernel]) extends Layer[NonEmptyMat](
   def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) =
     nextLayer.fold(throw ConvolutionDerivativeException(CONV_NEXTLAYER_MISS))( x=>x match {
        case c : ConvolutionLayer =>  
-             val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
-             val res = kernel.par.map { k => 
-               val rot = k.rot180
-               val conv = nextLayerDelta.map { x => x.*(rot, _FULL) }
-               rot.computeDelta(conv)
-               }
-             val updated = for(i <- 0 to kernel.size -1)
+           val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
+           val res = kernel.par.map { k => 
+                         val rot = k.rot180
+                         val conv = nextLayerDelta.map { x => x.*(rot, _FULL) }
+                         rot.computeDelta(conv)
+                     }
+           val updated = for(i <- 0 to kernel.size -1)
                              yield kernel(i).updateWithDelta(res(i))
-             ConvolutionLayer(updated toVector)                             
+           ConvolutionLayer(updated toVector)                             
              
        case l @ _ =>
-             val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
-             val res = nextLayerDelta.grouped(nextLayerDelta.size/kernel.size).toVector.par
-                                     .zip(kernel.map(_.rot180))
-                                     .map(x=> x._2.computeDelta(x._1.map(y=> y *(x._2, _FULL))))
-             val updated = for(i<- 0 to kernel.size-1)
-                             yield kernel(i).updateWithDelta(res(i))
-             ConvolutionLayer(updated toVector)
+           val nextLayerDelta = getNextLayerDelta(x).flatMap(_.get)
+           val res = nextLayerDelta.grouped(nextLayerDelta.size/kernel.size).toVector.par
+                                   .zip(kernel.map(_.rot180))
+                                   .map(x=> x._2.computeDelta(x._1.map(y=> y *(x._2, _FULL))))
+           val updated = for(i<- 0 to kernel.size-1)
+                           yield kernel(i).updateWithDelta(res(i))
+           ConvolutionLayer(updated toVector)
        })
     
        
@@ -187,14 +187,13 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
     case _ => throw FCLayerStructureException(FC_NEURON_CONSIST)
   }
   
-  //TODO: parallelize
   def derivate[B<: NeuralUnit](nextLayer : Option[ProcessableLayer[B]], lc : LearningContext) = 
     nextLayer.fold(FCLayer( neurons.collect{
                       case x: OutNeuron => x.updateWithDerivative(x.computeDelta(lc.target))
                       case _ => throw InvalidNeuralUnitTypeException(NOT_FC)
                      })
                   )(x => x match {
-                      case fc : FCLayer => val der = neurons.map( x=> x.updateWithDerivative(x.outLinks.foldLeft(0.0)((i,j)=> i + j.rev)))
+                      case fc : FCLayer => val der = neurons.map(x=> x.updateWithDerivative(x.outLinks.foldLeft(0.0)((i,j)=> i + j.rev)))
                                            FCLayer(der)
                       case _ => throw LayerTypeException(INVALID_LAYER_ORDER)  
                    })

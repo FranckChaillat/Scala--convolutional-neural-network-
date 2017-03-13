@@ -63,7 +63,7 @@ case class OutNeuron(inLinks : Vector[Link], activationFun : ActivationFunction,
   def apply(layerPreact : Layer[OutNeuron]) = inLinks match {
     case h+:t => val act = computeActivation(layerPreact.get.map(_.preact))
                     updateWithActivation(act)
-    case _       => throw new NeuralLinkException(FC_LINK_COUNT)
+    case _    => throw new NeuralLinkException(FC_LINK_COUNT)
   }
 
   private def computeActivation( layerPreact : Seq[Double])  = this.activationFun match {

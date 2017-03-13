@@ -60,7 +60,6 @@ object Convolution{
         case this.heigh => acc.:+ (s.getSubMat(rect.get))
         case _ => divide( acc.:+(s.getSubMat(rect.get)) , rect.get.lineDownNonOverlap)
       }
-      
       case _ => divide( acc.:+(s.getSubMat(rect.get)) , rect.get.goRightNonOverlap)
       
     }

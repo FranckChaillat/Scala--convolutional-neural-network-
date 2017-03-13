@@ -5,34 +5,28 @@ import cnn.core.structure.NonEmptyMat
 import cnn.core.structure.FCLayer
 import scala.annotation.tailrec
 
-class LearnSession(set : Seq[Example], net : Network) {
+object LearnSession {
   
-  def doTrain = {
-    println("The training phase beguin...")
-    train(set, net)
+
+  def test = {
+      @tailrec
+      def _test(acc: Seq[Example]) (set: Seq[Example], net: Network) : Seq[Example] = set match {
+          case x +: xs => val res = net.submit(x)
+                                       .compute
+                          val inf = res.getInference
+                          println("Result : "+ inf._1+ "target is : "+ x.classification)
+                          res.last.asInstanceOf[FCLayer].neurons.foreach { x => print(x._act+",")}
+                          println()
+                          val n = if(inf._1 == x.classification) x.updateFlag(true) else x
+                          _test(acc :+ n)(xs, net)
+          case _ => acc
+      }
+     _test(Seq())_
   }
   
-  
-  def doTest = {
-    println("The test phase beguin...")
-    test(set, Seq(), net)
-  }
   
   @tailrec
-  private def test (set : Seq[Example], acc : Seq[Example] , net : Network) : Seq[Example] = set match {
-    case x +: xs => val res = net.submit(x)
-                                 .compute
-                    val inf = res.getInference
-                    println("Result : "+ inf._1+ "target is : "+ x.classification)
-                    res.last.asInstanceOf[FCLayer].neurons.foreach { x => print(x._act+",")}
-                    println()
-                    val n = if(inf._1 == x.classification) x.updateFlag(true) else x
-                    test(xs, acc :+ n, net)
-    case _ => acc
-  }
-  
-  @tailrec
-  private def train(set : Seq[Example], net : Network) : Network = set match {
+    def train(set : Seq[Example], net : Network) : Network = set match {
       case a@ x +: xs if(a.forall { x => x.learned }) => net
       case x +: xs => val res = net.submit(x)
                                    .compute
@@ -48,6 +42,6 @@ class LearnSession(set : Seq[Example], net : Network) {
                       
       case Seq()  => throw new IllegalArgumentException("The given training set is empty")
     }
-  
+
 
 }
