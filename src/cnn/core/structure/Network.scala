@@ -93,6 +93,7 @@ import cnn.learning.Example
               case c : ConvolutionLayer =>  Layer(c.getActivation.get.get.flatMap(x => Mat.toNeurons(x)))
               case p : PoolingLayer =>  Layer(p.getActivation.get.get.flatMap(x=> Mat.toNeurons(x)))
               case f : FCLayer =>  Layer(f.get)
+              case i : InputLayer if acc.last == acc.first => Layer( i.get.flatMap { x => Mat.toNeurons(x) })
             }
            _compute(acc.:+(fc(in)), l.tail)
           
@@ -132,6 +133,8 @@ import cnn.learning.Example
     def update(l : Vector[Layer[NeuralUnit]], acc : Network) : Network = (l.headOption, l.tail.headOption) match {
       case (Some(cur), Some(nxt)) => (cur, nxt) match {
         case (conv : ConvolutionLayer, x : ProcessableLayer[_]) => update(l.tail, acc.:+(conv.updateKernel(x, lc)))
+        case (fc : FCLayer, x) => val updated = fc.updateWeight(lc)
+                                  update(l.tail, acc :+ updated)
         case (x, y) => update(l.tail, acc.:+(x))
       }
       case (Some(cur), None) => cur match {

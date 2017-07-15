@@ -12,7 +12,9 @@ case class Link(input: Double, out: Option[Neuron], weight : Double){
 
   def updateWithInput(i : Double) = Link(i, out , weight)
   
-  def updateWeight(learningRate : Double, n : Neuron) = Link(input, out, weight - (learningRate * (-n._der * input)))
+  def updateWeight(learningRate : Double, n : Neuron) = {
+    Link(input, out, weight - (learningRate * (-n._der * input)))
+  }
   
   def * =  input * weight
   def rev = out match {

@@ -80,8 +80,7 @@ case class ConvolutionLayer(kernel : Vector[Kernel]) extends Layer[NonEmptyMat](
            val updated = for(i<- 0 to kernel.size-1)
                            yield kernel(i).updateWithDelta(res(i))
            ConvolutionLayer(updated toVector)
-       })
-    
+       })   
        
  
    def updateKernel[T <: NeuralUnit](nextLayer : ProcessableLayer[T], lc : LearningContext) = { 
@@ -95,15 +94,14 @@ case class ConvolutionLayer(kernel : Vector[Kernel]) extends Layer[NonEmptyMat](
          
         ConvolutionLayer((for(i<- 0 to kernel.size-1)
                             yield kernel(i) update(res(i))).toVector)
-  }
-       
+  }   
 
   
   def getDelta = kernel.map(x => Layer(x.delta))
   
+  
   def getActivation = Some(Layer(kernel.flatMap(x => x.activation))) //TODO : check if Option type is necessary
   
-
 }
   
 case class PoolingLayer(window : PoolingWindow , method : SubSamplingMethod) extends Layer[NonEmptyMat] with ProcessableLayer[NonEmptyMat]{
@@ -124,8 +122,7 @@ case class PoolingLayer(window : PoolingWindow , method : SubSamplingMethod) ext
                 val nextLayerDelta = getNextLayerDelta(e).par
                 val res = nextLayerDelta.map(e=> upsample(x,y, i.get ,a.get, e.get))
                 val sum = RichList.powerZip[NonEmptyMat](res.seq)
-                                    .map{case h+: t => h.add(t)}
-                                    //.map(x=>  Mat.combineMat(x, Mat._MATADD))
+                                    .map { case h +: t => h.add(t) }
                                   .collect{ case x : NonEmptyMat => x
                                             case _ => throw PoolingException(POOLING_SUM)
                                           }
@@ -133,7 +130,6 @@ case class PoolingLayer(window : PoolingWindow , method : SubSamplingMethod) ext
             
           }
        }
-      
     
     
     @tailrec
@@ -166,12 +162,14 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
   
   override def get = neurons
   
+  
   def getActivation(): Option[Layer[NonEmptyMat]] = if(neurons.size >0) Some(Layer(neurons.map(x=> Mat.wrapNumeric(x._act)))) else None
   
     def apply(input : Layer[Neuron]) : FCLayer = neurons match {
        case a@ h +:t =>
           val updated = a.map( n => if(n._inLinks.length == input.get.length)
-                                      n.updateWithInput( input.get.map(_._act).zip(n._inLinks)
+                                      n.updateWithInput( input.get.map(_._act)
+                                                                  .zip(n._inLinks)
                                                                   .map(x=> x._2.updateWithInput(x._1)))
                                     else throw NeuralLinkException(FC_LINK_COUNT))
           updated.head match {
@@ -180,7 +178,7 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
                                               case _ => throw new FCLayerStructureException(FC_NEURON_CONSIST)
                                             })
                                      FCLayer(preacts.map(x => x(Layer(preacts))))
-               case _ => FCLayer(a.map(_()))
+               case _ => FCLayer(updated.map(_()))
          }
                                  
      
@@ -193,17 +191,27 @@ case class FCLayer(neurons : Vector[Neuron]) extends Layer[Neuron](neurons) with
                       case _ => throw InvalidNeuralUnitTypeException(NOT_FC)
                      })
                   )(x => x match {
-                      case fc : FCLayer => val der = neurons.map(x=> x.updateWithDerivative(x.outLinks.foldLeft(0.0)((i,j)=> i + j.rev)))
-                                           FCLayer(der)
-                      case _ => throw LayerTypeException(INVALID_LAYER_ORDER)  
+                      case fc : FCLayer => 
+                        val der = Range(0, neurons.length).par.map(i => {
+                                      val n = neurons(i)
+                                      n.updateWithDerivative( n.computeDelta() * getDerivatives(i, fc))
+                                  }).toVector
+                        FCLayer(der)
+                      case _ => throw LayerTypeException(INVALID_LAYER_ORDER)
                    })
   
+                   
   def updateWeight(lc : LearningContext) =  
      FCLayer(neurons.map(n => { 
                val lnk = n._inLinks.map(l => l.updateWeight(lc.leaningRate, n))
                n.updateWithInput(lnk)
              }))
   
+             
+  def getDerivatives(index : Int, next : FCLayer) : Double = {
+    next.get.foldLeft(0.0)((acc,n) =>  acc + n._inLinks(index).weight * n._der)
+  }
+             
   
   def getRawDelta = {
           val res = (0 to neurons.head._inLinks.size-1).map(l => {
